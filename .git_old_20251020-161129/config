@@ -1,0 +1,19 @@
+[core]
+	repositoryformatversion = 0
+	filemode = true
+	bare = false
+	logallrefupdates = true
+	ignorecase = true
+	precomposeunicode = true
+[remote "origin"]
+	url = https://github.com/swansontx/Somewhere.git
+	fetch = +refs/heads/*:refs/remotes/origin/*
+[branch "main"]
+	remote = origin
+	merge = refs/heads/main
+[branch "test"]
+	remote = origin
+	merge = refs/heads/test
+[branch "release/resolved-merge-pr17"]
+	remote = origin
+	merge = refs/heads/release/resolved-merge-pr17-1760932052

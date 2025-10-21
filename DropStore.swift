@@ -53,15 +53,14 @@ deinit {
     func ensureSignedIn() {
         if Auth.auth().currentUser == nil {
             Auth.auth().signInAnonymously { [weak self] result, error in
-                guard let self = self else { return }
                 if let error {
                     print("Anonymous sign-in failed:", error.localizedDescription)
-                    self.authError = error.localizedDescription
-                    self.updateCurrentUser(with: nil)
+                    self?.authError = error.localizedDescription
+                    self?.updateCurrentUser(with: nil)
                 } else if let user = result?.user {
                     print("Signed in anonymously as \(user.uid)")
-                    self.authError = nil
-                    self.updateCurrentUser(with: user)
+                    self?.authError = nil
+                    self?.updateCurrentUser(with: user)
                 }
             }
         } else {
@@ -100,18 +99,16 @@ deinit {
 
         let auth = Auth.auth()
         let finish: (AuthDataResult?, Error?) -> Void = { [weak self] result, error in
-            guard let self = self else { return }
-
             if let error {
                 print("Sign in failed:", error.localizedDescription)
-                self.authError = error.localizedDescription
+                self?.authError = error.localizedDescription
                 return
             }
 
             if let user = result?.user ?? auth.currentUser {
-                self.authError = nil
-                self.applyDisplayNameIfNeeded(fullName, to: user)
-                self.updateCurrentUser(with: user)
+                self?.authError = nil
+                self?.applyDisplayNameIfNeeded(fullName, to: user)
+                self?.updateCurrentUser(with: user)
             }
         }
 
@@ -206,18 +203,17 @@ deinit {
         let payload = dropPayload(for: optimistic, authorId: user.uid)
 
         docRef.setData(payload) { [weak self] error in
-            guard let self = self else { return }
-            Task { @MainActor in
+            DispatchQueue.main.async { [weak self] in
                 if let error = error {
                     print("Error creating drop:", error.localizedDescription)
                     optimistic.syncStatus = .failed(message: error.localizedDescription)
-                    self.optimisticDrops[dropId] = optimistic
+                    self?.optimisticDrops[dropId] = optimistic
                 } else {
                     optimistic.syncStatus = .synced
-                    self.optimisticDrops[dropId] = optimistic
+                    self?.optimisticDrops[dropId] = optimistic
                     print("✅ Drop created successfully")
                 }
-                self.publishDrops()
+                self?.publishDrops()
             }
         }
     }
@@ -240,18 +236,17 @@ deinit {
         let docRef = db.collection("drops").document(drop.id)
 
         docRef.setData(payload) { [weak self] error in
-            guard let self = self else { return }
             Task { @MainActor in
                 if let error = error {
                     print("Retry failed:", error.localizedDescription)
                     retryDrop.syncStatus = .failed(message: error.localizedDescription)
-                    self.optimisticDrops[drop.id] = retryDrop
+                    self?.optimisticDrops[drop.id] = retryDrop
                 } else {
                     retryDrop.syncStatus = .synced
-                    self.optimisticDrops[drop.id] = retryDrop
+                    self?.optimisticDrops[drop.id] = retryDrop
                     print("✅ Drop retried successfully")
                 }
-                self.publishDrops()
+                self?.publishDrops()
             }
         }
     }
@@ -297,8 +292,6 @@ deinit {
                 .end(at: [end])
                 .limit(to: 200)
                 .addSnapshotListener { [weak self] snap, err in
-                    guard let self = self else { return }
-
                     if let err = err {
                         print("Firestore listener error:", err.localizedDescription)
                         return
@@ -315,6 +308,8 @@ deinit {
                             let geo = data["location"] as? GeoPoint
                         else { continue }
 
+                        let isLifted = self?.lifted.contains(doc.documentID) ?? false
+
                         let item = DropItem(
                             id: doc.documentID,
                             text: text,
@@ -327,21 +322,21 @@ deinit {
                             reactionCount: 0,
                             liftCount: 0,
                             hasReacted: false,
-                            isLiftedByCurrentUser: lifted.contains(doc.documentID),
+                            isLiftedByCurrentUser: isLifted,
                             syncStatus: .synced
                         )
 
                         switch change.type {
                         case .added, .modified:
-                            self.remoteDrops[item.id] = item
+                            self?.remoteDrops[item.id] = item
                         case .removed:
-                            self.remoteDrops.removeValue(forKey: item.id)
+                            self?.remoteDrops.removeValue(forKey: item.id)
                         @unknown default:
                             break
                         }
                     }
 
-                    self.publishDrops()
+                    self?.publishDrops()
                 }
             listeners.append(registration)
         }
